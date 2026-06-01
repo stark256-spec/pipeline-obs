@@ -1,0 +1,163 @@
+{
+  "__inputs": [
+    {
+      "name": "DS_PROMETHEUS",
+      "label": "Prometheus",
+      "description": "Prometheus / Thanos / Mimir data source",
+      "type": "datasource",
+      "pluginId": "prometheus",
+      "pluginName": "Prometheus"
+    }
+  ],
+  "title": "Data Pipeline Observability",
+  "uid": "pipeline-obs-v1",
+  "version": 1,
+  "schemaVersion": 38,
+  "tags": ["pipeline-obs", "data-pipelines", "opentelemetry"],
+  "time": { "from": "now-24h", "to": "now" },
+  "refresh": "1m",
+  "panels": [
+    {
+      "title": "Pipeline Runs (24h)",
+      "type": "stat",
+      "gridPos": { "h": 4, "w": 4, "x": 0, "y": 0 },
+      "targets": [
+        {
+          "expr": "sum(increase(pipeline_runs_total[24h]))",
+          "legendFormat": "Total runs"
+        }
+      ],
+      "options": { "colorMode": "background", "graphMode": "area" }
+    },
+    {
+      "title": "Success Rate (24h)",
+      "type": "stat",
+      "gridPos": { "h": 4, "w": 4, "x": 4, "y": 0 },
+      "targets": [
+        {
+          "expr": "sum(increase(pipeline_runs_total{pipeline_status='succeeded'}[24h])) / sum(increase(pipeline_runs_total[24h])) * 100",
+          "legendFormat": "Success %"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percent",
+          "thresholds": {
+            "steps": [
+              { "color": "red", "value": null },
+              { "color": "yellow", "value": 95 },
+              { "color": "green", "value": 99 }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "title": "Rows Written (24h)",
+      "type": "stat",
+      "gridPos": { "h": 4, "w": 4, "x": 8, "y": 0 },
+      "targets": [
+        {
+          "expr": "sum(increase(pipeline_rows_written_total[24h]))",
+          "legendFormat": "Rows"
+        }
+      ],
+      "fieldConfig": { "defaults": { "unit": "short" } }
+    },
+    {
+      "title": "Estimated Cost (24h)",
+      "type": "stat",
+      "gridPos": { "h": 4, "w": 4, "x": 12, "y": 0 },
+      "targets": [
+        {
+          "expr": "sum(increase(pipeline_cost_usd_total[24h]))",
+          "legendFormat": "USD"
+        }
+      ],
+      "fieldConfig": { "defaults": { "unit": "currencyUSD" } }
+    },
+    {
+      "title": "Quality Rules Failed (24h)",
+      "type": "stat",
+      "gridPos": { "h": 4, "w": 4, "x": 16, "y": 0 },
+      "targets": [
+        {
+          "expr": "sum(increase(pipeline_quality_rules_failed_total[24h]))",
+          "legendFormat": "Failed rules"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "thresholds": {
+            "steps": [
+              { "color": "green", "value": null },
+              { "color": "yellow", "value": 1 },
+              { "color": "red", "value": 10 }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "title": "Run Duration (p50 / p95 / p99)",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 4 },
+      "targets": [
+        { "expr": "histogram_quantile(0.50, rate(pipeline_run_duration_seconds_bucket[5m]))", "legendFormat": "p50" },
+        { "expr": "histogram_quantile(0.95, rate(pipeline_run_duration_seconds_bucket[5m]))", "legendFormat": "p95" },
+        { "expr": "histogram_quantile(0.99, rate(pipeline_run_duration_seconds_bucket[5m]))", "legendFormat": "p99" }
+      ],
+      "fieldConfig": { "defaults": { "unit": "s" } }
+    },
+    {
+      "title": "Runs by Status",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 4 },
+      "targets": [
+        { "expr": "sum by (pipeline_status) (rate(pipeline_runs_total[5m]))", "legendFormat": "{{pipeline_status}}" }
+      ]
+    },
+    {
+      "title": "Rows Written by Engine",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 12 },
+      "targets": [
+        { "expr": "sum by (pipeline_engine) (rate(pipeline_rows_written_total[5m]))", "legendFormat": "{{pipeline_engine}}" }
+      ],
+      "fieldConfig": { "defaults": { "unit": "short" } }
+    },
+    {
+      "title": "Cost by Pipeline",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 12 },
+      "targets": [
+        { "expr": "sum by (pipeline_name) (increase(pipeline_cost_usd_total[1h]))", "legendFormat": "{{pipeline_name}}" }
+      ],
+      "fieldConfig": { "defaults": { "unit": "currencyUSD" } }
+    },
+    {
+      "title": "Freshness Lag by Pipeline",
+      "type": "table",
+      "gridPos": { "h": 8, "w": 24, "x": 0, "y": 20 },
+      "targets": [
+        {
+          "expr": "pipeline_freshness_lag_seconds",
+          "legendFormat": "{{pipeline_name}}",
+          "instant": true
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "s",
+          "thresholds": {
+            "steps": [
+              { "color": "green", "value": null },
+              { "color": "yellow", "value": 3600 },
+              { "color": "red", "value": 86400 }
+            ]
+          }
+        }
+      }
+    }
+  ]
+}

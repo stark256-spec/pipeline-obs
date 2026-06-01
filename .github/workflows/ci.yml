@@ -1,0 +1,41 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ["3.11", "3.12"]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+      - run: pip install -e ".[dev]"
+      - run: pytest tests/ -q
+      - run: ruff check .
+      - run: ruff format --check .
+
+  schema-validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install pydantic>=2.7
+      - name: Dump and validate JSON Schema
+        run: python -c "
+from pipeline_obs.schema import PipelineRun
+import json, pathlib, sys
+sys.path.insert(0, 'src')
+from pipeline_obs.schema import PipelineRun
+schema = PipelineRun.model_json_schema()
+pathlib.Path('schema/pipeline-run.schema.json').write_text(json.dumps(schema, indent=2))
+print('Schema valid.')
+"

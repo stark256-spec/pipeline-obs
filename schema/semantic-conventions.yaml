@@ -1,0 +1,324 @@
+# Data Pipeline Semantic Conventions — pipeline-obs
+# Proposed addition to OpenTelemetry Semantic Conventions
+# See: otep/otep-data-pipeline-semconv.md
+#
+# Namespace: pipeline.*
+# These conventions define standard attributes for spans, metrics, and events
+# emitted by data pipeline systems (batch, streaming, incremental).
+
+groups:
+
+  - id: pipeline
+    prefix: pipeline
+    type: span
+    brief: >
+      Describes a single execution of a data pipeline — one logical unit of
+      data movement or transformation. Applies to batch jobs, streaming tasks,
+      incremental loads, and SQL transformations.
+    attributes:
+
+      - id: name
+        type: string
+        requirement_level: required
+        brief: Logical name of the pipeline, stable across runs.
+        examples: ["raw_to_bronze.orders", "dbt.orders_daily", "kafka.clickstream"]
+
+      - id: run_id
+        type: string
+        requirement_level: required
+        brief: Unique identifier for this specific execution instance.
+        examples: ["run-20240601-abc123", "01HZ9XKJQ3WFGP7RBTD6VE4MN"]
+
+      - id: engine
+        type:
+          allow_custom_values: true
+          members:
+            - id: databricks
+              value: "databricks"
+              brief: Databricks Jobs or DLT
+            - id: dbt
+              value: "dbt"
+              brief: dbt Cloud or dbt Core
+            - id: spark
+              value: "spark"
+              brief: Apache Spark (standalone or EMR/HDInsight)
+            - id: dremio
+              value: "dremio"
+              brief: Dremio Arctic / Sonar
+            - id: pinot
+              value: "pinot"
+              brief: Apache Pinot ingestion job
+            - id: delta_live_tables
+              value: "delta_live_tables"
+              brief: Databricks Delta Live Tables
+            - id: glue
+              value: "glue"
+              brief: AWS Glue
+            - id: adf
+              value: "adf"
+              brief: Azure Data Factory
+            - id: airflow
+              value: "airflow"
+              brief: Apache Airflow
+            - id: prefect
+              value: "prefect"
+              brief: Prefect
+        requirement_level: required
+        brief: The data pipeline engine that executed this run.
+
+      - id: type
+        type:
+          members:
+            - id: batch
+              value: "batch"
+              brief: Bounded, scheduled data load
+            - id: streaming
+              value: "streaming"
+              brief: Unbounded, continuous processing
+            - id: incremental
+              value: "incremental"
+              brief: Delta/watermark-based load
+            - id: full_refresh
+              value: "full_refresh"
+              brief: Complete table replacement
+        requirement_level: recommended
+        brief: Execution mode of the pipeline.
+
+      - id: status
+        type:
+          members:
+            - id: running
+              value: "running"
+            - id: succeeded
+              value: "succeeded"
+            - id: failed
+              value: "failed"
+            - id: cancelled
+              value: "cancelled"
+            - id: skipped
+              value: "skipped"
+        requirement_level: required
+        brief: Terminal or current status of this pipeline run.
+
+      - id: cloud
+        type:
+          members:
+            - id: aws
+              value: "aws"
+            - id: azure
+              value: "azure"
+            - id: gcp
+              value: "gcp"
+            - id: on_prem
+              value: "on_prem"
+        requirement_level: recommended
+        brief: Cloud provider where the pipeline executed.
+
+      - id: region
+        type: string
+        requirement_level: opt_in
+        brief: Cloud region (e.g. us-east-1, eastus2).
+        examples: ["us-east-1", "eastus2", "europe-west1"]
+
+      - id: environment
+        type: string
+        requirement_level: recommended
+        brief: Deployment environment.
+        examples: ["production", "staging", "dev"]
+
+      - id: owner
+        type: string
+        requirement_level: opt_in
+        brief: Team or individual responsible for the pipeline.
+        examples: ["data-engineering", "alice@example.com"]
+
+      - id: tags
+        type: string[]
+        requirement_level: opt_in
+        brief: Free-form labels for grouping and filtering.
+        examples: [["finance", "gdpr"], ["ml-feature", "critical"]]
+
+  - id: pipeline.io
+    prefix: pipeline
+    type: span
+    brief: Data volume metrics for a pipeline run.
+    attributes:
+
+      - id: rows_read
+        type: int
+        requirement_level: recommended
+        brief: Total rows read from all sources.
+
+      - id: rows_written
+        type: int
+        requirement_level: recommended
+        brief: Total rows written to all destinations.
+
+      - id: rows_failed
+        type: int
+        requirement_level: opt_in
+        brief: Rows rejected due to errors or quality checks.
+
+      - id: bytes_read
+        type: int
+        requirement_level: opt_in
+        brief: Total bytes read (uncompressed).
+
+      - id: bytes_written
+        type: int
+        requirement_level: opt_in
+        brief: Total bytes written (uncompressed).
+
+      - id: files_read
+        type: int
+        requirement_level: opt_in
+        brief: Number of files or partitions read.
+
+      - id: files_written
+        type: int
+        requirement_level: opt_in
+        brief: Number of files or partitions written.
+
+      - id: partitions_read
+        type: int
+        requirement_level: opt_in
+        brief: Number of partitions scanned.
+
+      - id: shuffle_bytes
+        type: int
+        requirement_level: opt_in
+        brief: Bytes shuffled across the network (Spark-specific).
+
+  - id: pipeline.cost
+    prefix: pipeline
+    type: span
+    brief: Cost attribution for a pipeline run.
+    attributes:
+
+      - id: cost_usd
+        type: double
+        requirement_level: opt_in
+        brief: Estimated total cost in USD for this run.
+
+      - id: dbu_consumed
+        type: double
+        requirement_level: opt_in
+        brief: Databricks Units consumed (Databricks-specific).
+
+      - id: compute_seconds
+        type: int
+        requirement_level: opt_in
+        brief: Total VM/node-seconds of compute used.
+
+      - id: slot_ms
+        type: int
+        requirement_level: opt_in
+        brief: Slot-milliseconds consumed (BigQuery-compatible).
+
+  - id: pipeline.lineage
+    prefix: pipeline.lineage
+    type: span
+    brief: Data lineage for a pipeline run — upstream and downstream datasets.
+    attributes:
+
+      - id: sources
+        type: string[]
+        requirement_level: recommended
+        brief: >
+          URIs of input datasets. Use fully-qualified identifiers:
+          catalog.schema.table, s3://bucket/prefix, or abfss://container@account/path.
+        examples: [
+          ["catalog.bronze.raw_orders"],
+          ["s3://datalake/raw/events/", "catalog.dim.customers"]
+        ]
+
+      - id: destinations
+        type: string[]
+        requirement_level: recommended
+        brief: URIs of output datasets.
+        examples: [["catalog.silver.orders_cleaned"]]
+
+      - id: schema_version
+        type: string
+        requirement_level: opt_in
+        brief: Schema version or contract identifier for the output dataset.
+        examples: ["v3", "2024-06-01"]
+
+      - id: transformation
+        type: string
+        requirement_level: opt_in
+        brief: Description or hash of the transformation logic applied.
+
+  - id: pipeline.quality
+    prefix: pipeline.quality
+    type: span
+    brief: Data quality measurements observed during a pipeline run.
+    attributes:
+
+      - id: rules_passed
+        type: int
+        requirement_level: opt_in
+        brief: Number of data quality rules that passed.
+
+      - id: rules_failed
+        type: int
+        requirement_level: opt_in
+        brief: Number of data quality rules that failed.
+
+      - id: null_rate
+        type: double
+        requirement_level: opt_in
+        brief: Fraction of rows with null values in key columns (0.0–1.0).
+
+      - id: duplicate_rate
+        type: double
+        requirement_level: opt_in
+        brief: Fraction of duplicate rows detected (0.0–1.0).
+
+      - id: freshness_lag_seconds
+        type: int
+        requirement_level: opt_in
+        brief: >
+          Lag between the latest event timestamp in the data and the pipeline
+          completion time, in seconds.
+
+      - id: anomaly_score
+        type: double
+        requirement_level: opt_in
+        brief: >
+          Optional composite anomaly score (0.0 = normal, 1.0 = severe anomaly).
+          Schema does not prescribe the scoring algorithm.
+
+  - id: pipeline.metrics
+    prefix: pipeline
+    type: metric
+    brief: Standard OTLP metric names emitted per pipeline run.
+    note: >
+      These metric names follow the OpenTelemetry metric naming guidelines.
+      All metrics carry at minimum the pipeline.name, pipeline.engine, and
+      pipeline.environment resource attributes.
+    attributes:
+      - id: duration
+        type: double
+        brief: "pipeline.run.duration — Histogram of run durations in seconds."
+        unit: s
+      - id: rows_written_total
+        type: int
+        brief: "pipeline.rows.written — Counter of rows written."
+        unit: "{row}"
+      - id: cost_usd_total
+        type: double
+        brief: "pipeline.cost.usd — Counter of cost accrued."
+        unit: USD
+      - id: runs_total
+        type: int
+        brief: "pipeline.runs — Counter of runs by status."
+        unit: "{run}"
+      - id: quality_rules_failed_total
+        type: int
+        brief: "pipeline.quality.rules.failed — Counter of failed quality rules."
+        unit: "{rule}"
+      - id: freshness_lag
+        type: int
+        brief: "pipeline.freshness.lag — Gauge of data freshness lag."
+        unit: s

@@ -1,0 +1,72 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "pipeline-obs"
+version = "0.1.0"
+description = "Unified observability schema and collector for multi-cloud data pipelines. OpenTelemetry-compatible."
+readme = "README.md"
+license = { text = "Apache-2.0" }
+requires-python = ">=3.11"
+authors = [{ name = "stark256-spec" }]
+keywords = [
+  "opentelemetry",
+  "observability",
+  "data-pipelines",
+  "databricks",
+  "delta-lake",
+  "dbt",
+  "otel",
+  "cncf",
+  "mlops",
+]
+classifiers = [
+  "Development Status :: 3 - Alpha",
+  "Intended Audience :: Developers",
+  "License :: OSI Approved :: Apache Software License",
+  "Programming Language :: Python :: 3.11",
+  "Topic :: System :: Monitoring",
+]
+dependencies = [
+  "opentelemetry-api>=1.24",
+  "opentelemetry-sdk>=1.24",
+  "opentelemetry-exporter-otlp-proto-grpc>=1.24",
+  "pydantic>=2.7",
+  "httpx>=0.27",
+  "typer>=0.12",
+  "rich>=13",
+  "python-dateutil>=2.9",
+]
+
+[project.optional-dependencies]
+databricks = ["databricks-sdk>=0.24"]
+dbt = ["dbt-artifacts-parser>=0.6"]
+dev = [
+  "pytest>=8",
+  "pytest-asyncio>=0.23",
+  "respx>=0.21",
+  "ruff>=0.4",
+  "mypy>=1.10",
+]
+
+[project.scripts]
+pipeline-obs = "pipeline_obs.cli:app"
+
+[project.urls]
+Homepage = "https://github.com/stark256-spec/pipeline-obs"
+"OTEP Proposal" = "https://github.com/stark256-spec/pipeline-obs/blob/main/otep/otep-data-pipeline-semconv.md"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/pipeline_obs"]
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+pythonpath = ["src"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I"]
+
+[tool.mypy]
+python_version = "3.11"
+strict = true
