@@ -28,14 +28,13 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
-      - run: pip install pydantic>=2.7
+      - run: pip install -e .
       - name: Dump and validate JSON Schema
-        run: python -c "
-from pipeline_obs.schema import PipelineRun
-import json, pathlib, sys
-sys.path.insert(0, 'src')
-from pipeline_obs.schema import PipelineRun
-schema = PipelineRun.model_json_schema()
-pathlib.Path('schema/pipeline-run.schema.json').write_text(json.dumps(schema, indent=2))
-print('Schema valid.')
-"
+        run: |
+          python -c "
+          import json, pathlib
+          from pipeline_obs.schema import PipelineRun
+          schema = PipelineRun.model_json_schema()
+          pathlib.Path('schema/pipeline-run.schema.json').write_text(json.dumps(schema, indent=2))
+          print('Schema valid.')
+          "

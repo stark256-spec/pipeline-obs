@@ -22,9 +22,9 @@ console = Console()
 @app.command()
 def collect(
     engine: Annotated[str, typer.Argument(help="databricks|dbt|dlt")],
-    output: Annotated[Optional[Path], typer.Option("--output", "-o", help="JSONL output file")] = None,
-    otlp: Annotated[Optional[str], typer.Option("--otlp", help="OTLP endpoint e.g. http://localhost:4317")] = None,
-    since_hours: Annotated[int, typer.Option("--since", help="Collect runs from the last N hours")] = 24,
+    output: Annotated[Optional[Path], typer.Option("--output", "-o", help="JSONL output")] = None,
+    otlp: Annotated[Optional[str], typer.Option("--otlp", help="OTLP endpoint")] = None,
+    since_hours: Annotated[int, typer.Option("--since", help="Collect from last N hours")] = 24,
     limit: Annotated[int, typer.Option("--limit")] = 100,
     as_json: Annotated[bool, typer.Option("--json")] = False,
 ) -> None:
@@ -110,6 +110,7 @@ def validate(
 def schema_dump() -> None:
     """Print the JSON Schema for PipelineRun."""
     from pipeline_obs.schema import PipelineRun
+
     print(json.dumps(PipelineRun.model_json_schema(), indent=2))
 
 
@@ -147,6 +148,7 @@ def _print_runs_table(runs: list) -> None:
     for r in runs:
         dur = f"{r.duration_seconds:.0f}s" if r.duration_seconds else "—"
         rows = str(r.io.rows_written) if r.io.rows_written else "—"
-        color = {"succeeded": "green", "failed": "red", "running": "yellow"}.get(r.status.value, "white")
+        _colors = {"succeeded": "green", "failed": "red", "running": "yellow"}
+        color = _colors.get(r.status.value, "white")
         table.add_row(r.name, r.engine.value, f"[{color}]{r.status.value}[/{color}]", dur, rows)
     console.print(table)

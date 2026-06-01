@@ -11,7 +11,6 @@ import httpx
 
 from pipeline_obs.collectors.base import BaseCollector
 from pipeline_obs.schema import (
-    PipelineCost,
     PipelineEngine,
     PipelineIO,
     PipelineLineage,
@@ -72,7 +71,12 @@ class DbtCloudCollector(BaseCollector):
 
         try:
             from dateutil.parser import parse
-            started = parse(started_raw).replace(tzinfo=timezone.utc) if started_raw else datetime.now(timezone.utc)
+
+            started = (
+                parse(started_raw).replace(tzinfo=timezone.utc)
+                if started_raw
+                else datetime.now(timezone.utc)
+            )
             finished = parse(finished_raw).replace(tzinfo=timezone.utc) if finished_raw else None
         except Exception:
             started = datetime.now(timezone.utc)
@@ -91,7 +95,13 @@ class DbtCloudCollector(BaseCollector):
             pipeline_type=PipelineType.BATCH,
             environment=self.environment,
             io=PipelineIO(
-                rows_written=run.get("artifacts", {}).get("run_results", {}).get("results", [{}])[0].get("rows_affected") if run.get("artifacts") else None,
+                rows_written=(
+                    (run.get("artifacts", {}).get("run_results", {}).get("results") or [{}])[0].get(
+                        "rows_affected"
+                    )
+                    if run.get("artifacts")
+                    else None
+                ),
             ),
             lineage=PipelineLineage(),
             raw=run,
@@ -135,7 +145,6 @@ class DbtArtifactsCollector(BaseCollector):
         metadata = data.get("metadata", {})
         results = data.get("results", [])
 
-        elapsed = data.get("elapsed_time", 0)
         invocation_id = metadata.get("invocation_id", "unknown")
 
         nodes_by_id: dict[str, Any] = {}

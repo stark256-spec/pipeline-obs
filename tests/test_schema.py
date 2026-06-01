@@ -80,7 +80,11 @@ def test_to_otel_attributes_includes_io():
 
 
 def test_to_otel_attributes_includes_lineage():
-    run = _run(lineage=PipelineLineage(sources=["catalog.bronze.orders"], destinations=["catalog.silver.orders"]))
+    run = _run(
+        lineage=PipelineLineage(
+            sources=["catalog.bronze.orders"], destinations=["catalog.silver.orders"]
+        )
+    )
     attrs = run.to_otel_attributes()
     assert attrs["pipeline.lineage.sources"] == ["catalog.bronze.orders"]
     assert attrs["pipeline.lineage.destinations"] == ["catalog.silver.orders"]

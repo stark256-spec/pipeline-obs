@@ -26,7 +26,7 @@ class BaseCollector(ABC):
     async def health_check(self) -> bool:
         """Return True if the backend is reachable."""
         try:
-            runs = await self.collect(limit=1)
+            await self.collect(limit=1)
             return True
         except Exception:
             return False

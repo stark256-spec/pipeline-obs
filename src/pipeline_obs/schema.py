@@ -85,7 +85,9 @@ class PipelineQuality(BaseModel):
     rules_failed: int | None = Field(None, description="Quality rules that failed")
     null_rate: float | None = Field(None, ge=0.0, le=1.0, description="Fraction of null rows")
     duplicate_rate: float | None = Field(None, ge=0.0, le=1.0, description="Fraction of duplicates")
-    freshness_lag_seconds: int | None = Field(None, description="Lag between data and completion time")
+    freshness_lag_seconds: int | None = Field(
+        None, description="Lag between data and completion time"
+    )  # noqa: E501
     anomaly_score: float | None = Field(None, ge=0.0, le=1.0, description="Composite anomaly score")
 
 

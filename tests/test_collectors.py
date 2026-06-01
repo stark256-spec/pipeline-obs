@@ -1,15 +1,14 @@
 """Tests for Databricks and dbt collectors — mocked HTTP."""
 
 import json
-from datetime import datetime, timezone
 from pathlib import Path
 
+import httpx
 import pytest
 import respx
-import httpx
 
 from pipeline_obs.collectors.databricks import DatabricksCollector, DeltaLiveTablesCollector
-from pipeline_obs.collectors.dbt import DbtArtifactsCollector, DbtCloudCollector
+from pipeline_obs.collectors.dbt import DbtArtifactsCollector
 from pipeline_obs.schema import PipelineEngine, PipelineStatus
 
 _DB_HOST = "https://adb-123.azuredatabricks.net"
@@ -74,7 +73,14 @@ async def test_databricks_collector_duration():
 
 @pytest.mark.asyncio
 async def test_databricks_collector_failed_run():
-    failed_run = {**_JOB_RUN, "state": {"life_cycle_state": "TERMINATED", "result_state": "FAILED", "state_message": "OOM"}}
+    failed_run = {
+        **_JOB_RUN,
+        "state": {
+            "life_cycle_state": "TERMINATED",
+            "result_state": "FAILED",
+            "state_message": "OOM",
+        },
+    }
     with respx.mock:
         respx.get(f"{_DB_HOST}/api/2.1/jobs/runs/list").mock(
             return_value=httpx.Response(200, json={"runs": [failed_run], "has_more": False})
@@ -143,7 +149,9 @@ async def test_dbt_artifacts_collector_lineage(tmp_path: Path):
     run_results = {
         "metadata": {"invocation_id": "inv-abc"},
         "elapsed_time": 10.0,
-        "results": [{"unique_id": "model.project.orders_daily", "status": "success", "adapter_response": {}}],
+        "results": [
+            {"unique_id": "model.project.orders_daily", "status": "success", "adapter_response": {}}
+        ],
     }
     rr_path = tmp_path / "run_results.json"
     m_path = tmp_path / "manifest.json"

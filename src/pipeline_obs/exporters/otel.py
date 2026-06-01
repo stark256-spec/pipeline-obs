@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-from datetime import timezone
 from typing import Any
 
 from opentelemetry import metrics, trace
@@ -26,10 +25,10 @@ _RESOURCE_ATTRS = {
 
 
 def _ns(dt: Any) -> int | None:
-    """Convert datetime to nanoseconds since epoch."""
+    """Convert a timezone-aware datetime to nanoseconds since epoch."""
     if dt is None:
         return None
-    return int(dt.replace(tzinfo=timezone.utc).timestamp() * 1e9)
+    return int(dt.timestamp() * 1e9)
 
 
 class OtelExporter:
@@ -52,6 +51,7 @@ class OtelExporter:
         tracer_provider = TracerProvider(resource=resource)
         if otlp_endpoint:
             from opentelemetry.exporter.otlp.proto.grpc.trace_exporter import OTLPSpanExporter
+
             tracer_provider.add_span_processor(
                 SimpleSpanProcessor(OTLPSpanExporter(endpoint=otlp_endpoint))
             )
@@ -63,6 +63,7 @@ class OtelExporter:
         # Meter
         if otlp_endpoint:
             from opentelemetry.exporter.otlp.proto.grpc.metric_exporter import OTLPMetricExporter
+
             reader = PeriodicExportingMetricReader(OTLPMetricExporter(endpoint=otlp_endpoint))
         else:
             reader = PeriodicExportingMetricReader(ConsoleMetricExporter())
@@ -94,6 +95,11 @@ class OtelExporter:
             "pipeline.quality.rules.failed",
             unit="{rule}",
             description="Total quality rules failed",
+        )
+        self._freshness_lag = self._meter.create_gauge(
+            "pipeline.freshness.lag",
+            unit="s",
+            description="Current data freshness lag in seconds",
         )
 
     def export(self, run: PipelineRun) -> None:
@@ -139,6 +145,9 @@ class OtelExporter:
 
         if run.quality.rules_failed:
             self._quality_failures.add(run.quality.rules_failed, label_attrs)
+
+        if run.quality.freshness_lag_seconds is not None:
+            self._freshness_lag.set(run.quality.freshness_lag_seconds, label_attrs)
 
     def export_all(self, runs: list[PipelineRun]) -> None:
         for run in runs:

@@ -95,7 +95,7 @@ class DatabricksCollector(BaseCollector):
             else None
         )
 
-        task_names = [t.get("task_key", "") for t in run.get("tasks", [])]
+        task_names = [t.get("task_key", "") for t in run.get("tasks", [])]  # noqa: F841
         sources: list[str] = []
         destinations: list[str] = []
         for task in run.get("tasks", []):
@@ -204,7 +204,8 @@ class DeltaLiveTablesCollector(BaseCollector):
             state = pipeline.get("state", "IDLE")
             status = _STATUS_MAP.get(state.upper(), PipelineStatus.RUNNING)
 
-            latest = pipeline.get("latest_updates", [{}])[0] if pipeline.get("latest_updates") else {}
+            updates = pipeline.get("latest_updates") or [{}]
+            latest = updates[0]
             run_id = latest.get("update_id", f"{pipeline_id}-latest")
 
             runs.append(
@@ -218,7 +219,9 @@ class DeltaLiveTablesCollector(BaseCollector):
                     cloud=self.cloud,
                     environment=self.environment,
                     lineage=PipelineLineage(
-                        destinations=pipeline.get("target", "").split(",") if pipeline.get("target") else []
+                        destinations=(
+                            pipeline["target"].split(",") if pipeline.get("target") else []
+                        ),
                     ),
                     raw=pipeline,
                 )
